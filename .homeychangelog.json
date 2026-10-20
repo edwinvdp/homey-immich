@@ -28,5 +28,8 @@
   },
   "1.0.14": {
     "en": "Fixed the app crashing (out of memory) on large libraries with many duplicates"
+  },
+  "1.0.15": {
+    "en": "Protected against memory overflow and reduced duplicates size"
   }
 }

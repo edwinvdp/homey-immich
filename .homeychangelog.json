@@ -25,5 +25,8 @@
   },
   "1.0.13": {
     "en": "Fixed to support Immich v.3.3.0"
+  },
+  "1.0.14": {
+    "en": "Fixed the app crashing (out of memory) on large libraries with many duplicates"
   }
 }

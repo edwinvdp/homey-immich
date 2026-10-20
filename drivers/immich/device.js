@@ -13,6 +13,7 @@ class ImmichDevice extends Homey.Device {
     this._prevDuplicateCount = null;
     this._albumAssetCounts = {};
     this._albumAssetIds = {}; // { albumId: Set<assetId> } — used to identify newly added assets
+    this._baselineQueue = Promise.resolve(); // album baselines run one at a time to bound memory
 
     for (const cap of [
       'immich_photo_count', 'immich_video_count', 'immich_storage_used', 'immich_disk_free',
@@ -62,7 +63,7 @@ class ImmichDevice extends Homey.Device {
       this._api.getServerStorage(),
       this._api.getPeople(),
       this._api.getAlbums(),
-      this._api.getDuplicates(),
+      this._api.getDuplicateCount(),
       this._api.getTrashCount(),
     ]);
 
@@ -125,7 +126,9 @@ class ImmichDevice extends Homey.Device {
             ).catch(this.error.bind(this));
           }
         } else if (prev === undefined && curr > 0) {
-          this._baselineAlbumAssetIds(album.id).catch((err) => this.log(`Album baseline failed for "${album.albumName}": ${err.message}`));
+          this._baselineQueue = this._baselineQueue
+            .then(() => this._baselineAlbumAssetIds(album.id))
+            .catch((err) => this.log(`Album baseline failed for "${album.albumName}": ${err.message}`));
         }
         this._albumAssetCounts[album.id] = curr;
       }
@@ -139,7 +142,7 @@ class ImmichDevice extends Homey.Device {
     }
 
     if (duplicatesResult.status === 'fulfilled') {
-      const count = Array.isArray(duplicatesResult.value) ? duplicatesResult.value.length : 0;
+      const count = duplicatesResult.value ?? 0;
       await this.setCapabilityValue('immich_duplicate_count', count);
 
       if (this._prevDuplicateCount !== null && count > this._prevDuplicateCount) {
